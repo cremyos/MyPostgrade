@@ -314,9 +314,52 @@ int CprocessData::LoadDataLabels()
 {
     qDebug()<<"WriteFile:";
     FILE *WriteFileIdle;
+    FILE *WriteFileIdle2;
 
     WriteFileIdle = fopen("RBFNN/DataFile.txt", "wb+");
+    WriteFileIdle2 = fopen("RBFNN/DataInputNetFile.csv", "wb+");
+    if(WriteFileIdle == NULL){
+        qDebug()<<"OpenWriteFile ERROR";
+        return EXIT_FAILURE;
+    }
+    if(WriteFileIdle2 == NULL){
+        qDebug()<<"OpenWriteFile2 ERROR";
+        return EXIT_FAILURE;
+    }
     char WriteData[1024] = {0x0};
+    char WriteNetInput[1024] = {0x0};
+
+    // 获得当前数据值用于求差，并保存
+    int i32Tempi32Id_Android = -1;
+    double i32TempdSpeed = -1;
+    double i32TempdTime = -1;
+    double i32TempdDistance = -1;
+    int i32Tempi32Rating = -1;
+    int i32Tempi32Rating_bus = -1;
+    int i32Tempi32Rating_weather = -1;
+    int i32TempdCarORBus = -1;
+    double i32TempdLatitude = -1;
+    double i32TempdLongtitude = -1;
+
+//    // 计算神经网络输入的差值
+//    QVector<int> vecDisi32Id_Android;
+//    QVector<double> vecDisdSpeed;
+//    QVector<double> vecDisdTime;
+//    QVector<double> vecDisdDistance;
+//    QVector<int> vecDisi32Rating;
+//    QVector<int> vecDisi32Rating_bus;
+//    QVector<int> vecDisi32Rating_weather;
+//    QVector<int> vecDisdCarORBus;
+//    QVector<double> vecDisdLatitude;
+//    QVector<double> vecDisdLongtitude;
+
+    //用于记录当前id_android
+    int i32Tempid = -999;
+    // 记录标志位，用于判断是否需要记录，1表示需要记录；0表示不需要记录；-1用于初始化
+    int i32RemSignal = -1;
+
+    // 记录经纬度，一组ID中包括多个经纬度标志位，用于判断是否需要记录，1表示需要记录；0表示不需要记录；-1用于初始化
+    int i32LatLongSignal = -1;
 
     QMap<int, ST_DEVICE_DATA>::iterator MapIntDeviceDataIter = MapIntDeviceData.begin();
     for(MapIntDeviceDataIter; MapIntDeviceDataIter != MapIntDeviceData.end(); MapIntDeviceDataIter++) {
@@ -325,73 +368,185 @@ int CprocessData::LoadDataLabels()
         ST_DEVICE_DATA stDevData = MapIntDeviceDataIter.value();
         ST_GPS_DATA TempGpsData = stDevData.stGPSData;
 
-        sprintf(WriteData, "%d %d %d\n", MapIntDeviceDataIter.key(), TempGpsData.i32Id_Android, 0);
+        if(i32Tempid != TempGpsData.i32Id_Android) {
+            int i32Tempid = TempGpsData.i32Id_Android;
+            if(i32Tempid == -1) {
+                // 第一次用记录
+                i32RemSignal = 1;
+            }else {
+                // 不是第一次不需要记录,需要做差
+                i32RemSignal = 0;
+            }
+
+        } else {
+            // 用于做差值
+            i32RemSignal = 0;
+        }
+
+        sprintf(WriteData, "%d  %d  %d  %d\n", MapIntDeviceDataIter.key(), 2, TempGpsData.i32Id_Android, 0);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %lf %d\n", MapIntDeviceDataIter.key(), TempGpsData.dSpeed, 1);
+        sprintf(WriteData, "%d	%d	%lf	%d\n", MapIntDeviceDataIter.key(), 3, TempGpsData.dSpeed, 1);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %lf %d\n", MapIntDeviceDataIter.key(), TempGpsData.dTime, 1);
+        sprintf(WriteData, "%d	%d	%lf	%d\n", MapIntDeviceDataIter.key(), 4, TempGpsData.dTime, 1);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %lf %d\n", MapIntDeviceDataIter.key(), TempGpsData.dDistance, 1);
+        sprintf(WriteData, "%d	%d	%lf	%d\n", MapIntDeviceDataIter.key(), 5, TempGpsData.dDistance, 1);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %d %d\n", MapIntDeviceDataIter.key(), TempGpsData.i32Rating, 0);
+        sprintf(WriteData, "%d	%d	%d	%d\n", MapIntDeviceDataIter.key(), 6, TempGpsData.i32Rating, 0);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %d %d\n", MapIntDeviceDataIter.key(), TempGpsData.i32Rating_bus, 0);
+        sprintf(WriteData, "%d	%d	%d	%d\n", MapIntDeviceDataIter.key(), 7, TempGpsData.i32Rating_bus, 0);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %d %d\n", MapIntDeviceDataIter.key(), TempGpsData.i32Rating_weather, 2);
+        sprintf(WriteData, "%d	%d	%d	%d\n", MapIntDeviceDataIter.key(), 8, TempGpsData.i32Rating_weather, 2);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
-        sprintf(WriteData, "%d %d %d\n", MapIntDeviceDataIter.key(), TempGpsData.dCarORBus, 2);
+        sprintf(WriteData, "%d	%d	%d	%d\n", MapIntDeviceDataIter.key(), 9, TempGpsData.dCarORBus, 2);
         fprintf(WriteFileIdle, "%s", WriteData);
         memset(WriteData, 0x0, sizeof(char) * 1024);
 
+        if(i32RemSignal == -1) {
+            // 记录第一组数据
+            i32Tempi32Id_Android = TempGpsData.i32Id_Android;
+            i32TempdSpeed = TempGpsData.dSpeed;
+            i32TempdTime = TempGpsData.dTime;
+            i32TempdDistance = TempGpsData.dDistance;
+            i32Tempi32Rating = TempGpsData.i32Rating;
+            i32Tempi32Rating_bus = TempGpsData.i32Rating_bus;
+            i32Tempi32Rating_weather = TempGpsData.i32Rating_weather;
+            i32TempdCarORBus = TempGpsData.dCarORBus;
 
+            i32RemSignal = 0;
+        }else if(i32RemSignal == 0) {
+            int Writei32Id_Android = -1;
+            double WritedSpeed = -1;
+            double WritedTime = -1;
+            double WritedDistance = -1;
+            int Writei32Rating = -1;
+            int Writei32Rating_bus = -1;
+            int Writei32Rating_weather = -1;
+            int WritedCarORBus = -1;
 
-//        qDebug()<<"i32Index = " + QString::number(TempGpsData.i32Index);
-//        qDebug()<<"i32Id = " + QString::number(TempGpsData.i32Id);
-//        qDebug()<<"0 i32Id_Android = " + QString::number(TempGpsData.i32Id_Android);
-//        qDebug()<<"1 dSpeed = " + QString::number(TempGpsData.dSpeed);
-//        qDebug()<<"1 dTime = " + QString::number(TempGpsData.dTime);
-//        qDebug()<<"1 dDistance = " + QString::number(TempGpsData.dDistance);
-//        qDebug()<<"0 i32Rating = " + QString::number(TempGpsData.i32Rating);
-//        qDebug()<<"0 i32Rating_bus = " + QString::number(TempGpsData.i32Rating_bus);
-//        qDebug()<<"2 i32Rating_weather = " + QString::number(TempGpsData.i32Rating_weather);
-//        qDebug()<<"2 dCarORBus = " + QString::number(TempGpsData.dCarORBus);
-//        qDebug()<<"StrLinha = " + TempGpsData.StrLinha;
+            Writei32Id_Android = abs(abs(TempGpsData.i32Id_Android) - abs(i32Tempi32Id_Android));
+            WritedSpeed = fabs(fabs(TempGpsData.dSpeed) - fabs(i32TempdSpeed));
+            WritedTime = fabs(fabs(TempGpsData.dTime) - fabs(i32TempdTime));
+            WritedDistance = abs(abs(TempGpsData.dDistance) - abs(i32TempdDistance));
+            Writei32Rating = abs(abs(TempGpsData.i32Rating) - abs(i32Tempi32Rating));
+            Writei32Rating_bus = abs(abs(TempGpsData.i32Rating_bus) - abs(i32Tempi32Rating_bus));
+            Writei32Rating_weather = abs(abs(TempGpsData.i32Rating_weather) - abs(i32Tempi32Rating_weather));
+            WritedCarORBus = abs(abs(TempGpsData.dCarORBus) - abs(i32TempdCarORBus));
 
-        QVector<ST_GPS_POINT> VecStGPSPointTemp = stDevData.VecStGPSPoint;
-        for(int i32TempIndex = 0; i32TempIndex < VecStGPSPointTemp.size(); i32TempIndex++) {
-            ST_GPS_POINT stGPSPoint = VecStGPSPointTemp.at(i32TempIndex);
-//            qDebug()<<"i32TempIndex = " + QString::number(i32TempIndex) + " || " + QString::number(stGPSPoint.dLatitude) + " , " + QString::number(stGPSPoint.dLongtitude) + " || i32Track_Id = " + QString::number(stGPSPoint.i32Track_Id);
+            sprintf(WriteNetInput, "%d %d %d %d\n", MapIntDeviceDataIter.key(), 2, Writei32Id_Android, 0);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
 
-            sprintf(WriteData, "%d %lf %d\n", MapIntDeviceDataIter.key(), stGPSPoint.dLatitude, 3);
-            fprintf(WriteFileIdle, "%s", WriteData);
-            memset(WriteData, 0x0, sizeof(char) * 1024);
+            sprintf(WriteNetInput, "%d %d %lf %d\n", MapIntDeviceDataIter.key(), 3, WritedSpeed, 1);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
 
-            sprintf(WriteData, "%d %lf %d\n", MapIntDeviceDataIter.key(), stGPSPoint.dLongtitude, 3);
-            fprintf(WriteFileIdle, "%s", WriteData);
-            memset(WriteData, 0x0, sizeof(char) * 1024);
+            sprintf(WriteNetInput, "%d %d %lf %d\n", MapIntDeviceDataIter.key(), 4, WritedTime, 1);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteNetInput, "%d %d %lf %d\n", MapIntDeviceDataIter.key(), 5, WritedDistance, 1);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteNetInput, "%d %d %d %d\n", MapIntDeviceDataIter.key(), 6, Writei32Rating, 0);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteNetInput, "%d %d %d %d\n", MapIntDeviceDataIter.key(), 7, Writei32Rating_bus, 0);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteNetInput, "%d %d %d %d\n", MapIntDeviceDataIter.key(), 8, Writei32Rating_weather, 2);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteNetInput, "%d %d %d %d\n", MapIntDeviceDataIter.key(), 9, WritedCarORBus, 2);
+//            fwrite(WriteNetInput, strlen(WriteNetInput), 1, WriteFileIdle2);
+            fprintf(WriteFileIdle2, "%s", WriteNetInput);
+            memset(WriteNetInput, 0x0, sizeof(char) * 1024);
+
+            i32Tempi32Id_Android = TempGpsData.i32Id_Android;
+            i32TempdSpeed = TempGpsData.dSpeed;
+            i32TempdTime = TempGpsData.dTime;
+            i32TempdDistance = TempGpsData.dDistance;
+            i32Tempi32Rating = TempGpsData.i32Rating;
+            i32Tempi32Rating_bus = TempGpsData.i32Rating_bus;
+            i32Tempi32Rating_weather = TempGpsData.i32Rating_weather;
+            i32TempdCarORBus = TempGpsData.dCarORBus;
 
         }
 
-//        sprintf(WriteData, "%lf %d\n", TempData.at(i32TempIndex2), i32TempIndex);
-//        fprintf(WriteFileIdle, "%s", WriteData);
+        char WriteLatLong[1024] = {0x0};
+        QVector<ST_GPS_POINT> VecStGPSPointTemp = stDevData.VecStGPSPoint;
+        for(int i32TempIndex = 0; i32TempIndex < VecStGPSPointTemp.size(); i32TempIndex++) {
+            if(i32LatLongSignal == -1) {
+                // 第一次用于记录
+                i32LatLongSignal = 1;
+            }
+            ST_GPS_POINT stGPSPoint = VecStGPSPointTemp.at(i32TempIndex);
+//            qDebug()<<"i32TempIndex = " + QString::number(i32TempIndex) + " || " + QString::number(stGPSPoint.dLatitude) + " , " + QString::number(stGPSPoint.dLongtitude) + " || i32Track_Id = " + QString::number(stGPSPoint.i32Track_Id);
+
+            sprintf(WriteData, "%d  %d  %lf %d\n", MapIntDeviceDataIter.key(), 10, stGPSPoint.dLatitude, 3);
+            fprintf(WriteFileIdle, "%s", WriteData);
+            memset(WriteData, 0x0, sizeof(char) * 1024);
+
+            sprintf(WriteData, "%d  %d  %lf %d\n", MapIntDeviceDataIter.key(), 11, stGPSPoint.dLongtitude, 3);
+            fprintf(WriteFileIdle, "%s", WriteData);
+            memset(WriteData, 0x0, sizeof(char) * 1024);
+
+            if(i32LatLongSignal == 1) {
+                //记录数据
+                i32TempdLatitude = stGPSPoint.dLatitude;
+                i32TempdLongtitude = stGPSPoint.dLongtitude;
+
+                // 置为0用于做差值
+                i32LatLongSignal = 0;
+            } else if(i32LatLongSignal == 0){
+                double WriteLatitude = fabs(fabs(stGPSPoint.dLatitude)-fabs(i32TempdLatitude));
+                double WriteLongtitude = fabs(fabs(stGPSPoint.dLongtitude)-fabs(i32TempdLongtitude));
+
+                sprintf(WriteLatLong, "%d %d %lf %d\n", MapIntDeviceDataIter.key(), 10, WriteLatitude, 3);
+                fwrite(WriteLatLong, strlen(WriteLatLong), 1, WriteFileIdle2);
+//                fprintf(WriteFileIdle2, "%s", WriteNetInput);
+                memset(WriteLatLong, 0x0, sizeof(char) * 1024);
+
+                sprintf(WriteLatLong, "%d %d %lf %d\n", MapIntDeviceDataIter.key(), 11, WriteLongtitude, 3);
+                fwrite(WriteLatLong, strlen(WriteLatLong), 1, WriteFileIdle2);
+//                fprintf(WriteFileIdle2, "%s", WriteNetInput);
+                memset(WriteLatLong, 0x0, sizeof(char) * 1024);
+            }
+
+        }
+        i32LatLongSignal = -1;
+
     }
 
     fclose(WriteFileIdle);
     qDebug()<<"Write File Finish";
+    qDebug()<<"Write File2 Finish";
+
+
 
 
 }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <QMap>
 #include <qdebug.h>
+#include <math.h>
 
 using namespace std;
 
@@ -21,35 +22,35 @@ typedef vector<double> datapoint;
  **/
 typedef struct {
     int i32Index;           ///< 序号
-    int i32Id;            ///< id
-    int i32Id_Android;     ///< id_android
-    double dSpeed;            ///< speed
-    double dTime;            ///< time
-    double dDistance;            ///< distance
-    int i32Rating;             ///< rating
-    int i32Rating_bus;             ///< rating_bus
-    int i32Rating_weather;             ///< rating_weather
-    int dCarORBus;                  /// car or bus
-    QString StrLinha;           /// linha
+    int i32Id;              ///< id
+    int i32Id_Android;      ///< id_android
+    double dSpeed;          ///< speed
+    double dTime;           ///< time
+    double dDistance;       ///< distance
+    int i32Rating;          ///< rating
+    int i32Rating_bus;      ///< rating_bus
+    int i32Rating_weather;  ///< rating_weather
+    int dCarORBus;          /// car or bus
+    QString StrLinha;       /// linha
 }ST_GPS_DATA;
 
 /**
  * 对应go_track_trackspoint文件
  **/
 typedef struct {
-    double dId;         ///< id
-    double dLatitude;   ///< latitude
-    double dLongtitude; ///< longtitude
-    int i32Track_Id;   ///< track_id;
-    QString StrTime;    ///< time
+    double dId;             ///< id
+    double dLatitude;       ///< latitude
+    double dLongtitude;     ///< longtitude
+    int i32Track_Id;        ///< track_id;
+    QString StrTime;        ///< time
 }ST_GPS_POINT;
 
 /**
  * 信息分类
  **/
 typedef struct {
-    ST_GPS_DATA stGPSData;
-    QVector<ST_GPS_POINT> VecStGPSPoint;
+    ST_GPS_DATA stGPSData;                  ///< 对应go_track_tracks.csv文件
+    QVector<ST_GPS_POINT> VecStGPSPoint;    ///< 对应go_track_trackspoint文件中的数据
 }ST_DEVICE_DATA;
 
 

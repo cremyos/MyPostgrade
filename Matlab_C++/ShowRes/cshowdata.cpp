@@ -85,7 +85,7 @@ int CShowData::ShowTheRes(QCustomPlot *CustomPlot)
                 case 3: {
 //                    qDebug()<<"case 3: " + QString::number(stCDS.i32ShowType);
                     QString TempShowData = QString::number(stCDS.dData) + "曲线表示";
-                    ui->textBrowser_2->append(TempShowData);
+//                    ui->textBrowser_2->append(TempShowData);
                     /**
                      * 数据
                      **/

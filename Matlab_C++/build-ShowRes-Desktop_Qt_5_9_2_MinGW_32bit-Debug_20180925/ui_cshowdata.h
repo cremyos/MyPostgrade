@@ -30,8 +30,8 @@ public:
     QTextBrowser *textBrowser;
     QLabel *label_Enable;
     QLabel *label_Disable;
-    QTextBrowser *textBrowser_2;
     QCustomPlot *widget;
+    QLabel *label;
 
     void setupUi(QWidget *CShowData)
     {
@@ -53,12 +53,12 @@ public:
         label_Disable = new QLabel(CShowData);
         label_Disable->setObjectName(QStringLiteral("label_Disable"));
         label_Disable->setGeometry(QRect(570, 100, 121, 81));
-        textBrowser_2 = new QTextBrowser(CShowData);
-        textBrowser_2->setObjectName(QStringLiteral("textBrowser_2"));
-        textBrowser_2->setGeometry(QRect(490, 240, 256, 192));
         widget = new QCustomPlot(CShowData);
         widget->setObjectName(QStringLiteral("widget"));
         widget->setGeometry(QRect(319, 39, 241, 131));
+        label = new QLabel(CShowData);
+        label->setObjectName(QStringLiteral("label"));
+        label->setGeometry(QRect(420, 240, 71, 31));
 
         retranslateUi(CShowData);
 
@@ -71,6 +71,7 @@ public:
         label_class->setText(QString());
         label_Enable->setText(QString());
         label_Disable->setText(QString());
+        label->setText(QApplication::translate("CShowData", "\347\212\266\346\200\201\351\207\217", Q_NULLPTR));
     } // retranslateUi
 
 };
