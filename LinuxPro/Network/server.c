@@ -133,7 +133,7 @@ int main(void)
 			else
 			{
 				pid_send = getpid(); 	/* 获取子进程ID*/
-//				write_func(pid_send,connetfd);
+				write_func(pid_send,connetfd);
 			}
 		}
  

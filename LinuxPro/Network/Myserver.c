@@ -9,16 +9,23 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/shm.h>
+#include <sys/wait.h>
  
 #define MAXLINE 256
 #define PORT	8889
- 
+
+static int i32ExitStatus = -999;
+
 // 共享内存结构体
 typedef struct {
 	int i32Flag;
-	unsigned char u8Msg[1024];
+	//unsigned char u8Msg[1024];
 	int i32MsgLen;
+//	int i32MessCheckNum;
+	unsigned char u8Msg[1024];
 }ST_MESSAGEBOX;
+
+
 
 
 /*进程退出函数*/
@@ -38,24 +45,43 @@ void DealProcess(int pid)
 	
 	ST_MESSAGEBOX *Msgbox = (ST_MESSAGEBOX*)shm;
 
-	printf("write id = %d\n",pid);
+	printf("Deal id = %d\n",pid);
+
+	wait(&i32ExitStatus);
  
-	signal(SIGUSR1,process_out);  /* 注册信号SIGUSR1，该信号由read 进程发送过来。*/
 	while(1)
 	{
 		unsigned char readBuff[1024] = {0x0};
+		unsigned char TempData[10] = {0x0};
 		if(Msgbox->i32Flag == 1) {
 			memcpy(readBuff, Msgbox->u8Msg, sizeof(unsigned char) * Msgbox->i32MsgLen);
+//			printf("Message Len = %d\n", Msgbox->i32MsgLen);
 			Msgbox->i32Flag = 0;
 			Msgbox->i32MsgLen = 0;
 			i32MessageIndex ++;
+			printf("DealMessageIndex = %d\n", i32MessageIndex);
+
+			// 取数据
+			memcpy(TempData, readBuff + 124, sizeof(char) * 4);
+			int i32TempNum = -99;
+			sscanf(TempData, "%dri", &i32TempNum);
+
+			// 运算操作
+			int i32Sum = i32TempNum + i32TempNum;
+			int i32Multi = i32TempNum * i32TempNum;
+			int i32Devide = i32TempNum/3;
+			int i32Sub = i32TempNum - i32TempNum;
 		}
+		
 	}
 
-	printf("DealProcessfunc Messagecount = %d\n", i32MessageIndex);
+//	printf("DealProcessfunc Messagecount = %d\n", i32MessageIndex);
 
 	shmdt(shm);	
 	shmctl(shmid, IPC_RMID, 0);
+
+//	exit(EXIT_SUCCESS); /*进程退出*/
+	
 }
  
 /*socket read 函数*/
@@ -71,7 +97,7 @@ void read_func(int pid, int fd)
 	
 	ST_MESSAGEBOX *Msgbox = (ST_MESSAGEBOX*)shm;
 	Msgbox->i32Flag = 0;
-
+	//Msgbox->i32MessCheckNum = 0;
 
 	printf("read id = %d \n",pid);
  
@@ -83,12 +109,13 @@ void read_func(int pid, int fd)
 		if(n > 0) 			/*客户端有数据发送过来*/
 		{
 			i32MessageIndex ++;
-			printf("server recv dataIndex =  %d\n", i32MessageIndex);
+//			printf("server recv dataIndex =  %d\n", i32MessageIndex);
 
 			if(Msgbox->i32Flag == 0) {
 				memcpy(Msgbox->u8Msg, readbuff, sizeof(unsigned char) * n);
 				Msgbox->i32Flag = 1;
 				Msgbox->i32MsgLen = n;
+//				Msgbox->i32MessCheckNum = i32MessageIndex;
 			}
 		}
 		else if(n == 0)		/*客户端断开了连接*/
@@ -100,7 +127,6 @@ void read_func(int pid, int fd)
 	printf("RecvMessage count = %d\n", i32MessageIndex);
 	shmdt(shm);
 	
-	kill(pid, SIGUSR1); /*发送信号SIGUSR1 到write进程*/
 	exit(EXIT_SUCCESS); /*进程退出*/
 }
  
@@ -162,12 +188,11 @@ int main(void)
 	
 		pid_child = fork(); 
 		if(pid_child == 0) {  	
-			// 孙子进程
-			pid_Recv = getpid(); 	
-			read_func(pid_Recv, connetfd);
-		} else {
 			pid_Deal = getpid(); 	/* 获取子进程ID*/
 			DealProcess(pid_Deal);
+		} else {
+			pid_Recv = getpid(); 	
+			read_func(pid_Recv, connetfd);
 		}
 	}
 	
