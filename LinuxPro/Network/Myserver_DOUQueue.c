@@ -10,12 +10,14 @@
 #include <signal.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
- 
+#include <pthread.h> 
+
 #define MAXLINE 256
 #define PORT	8889
 #define QUEUESIZE 500
 
-static int i32ExitStatus = -999;
+int i32ExitStatus = -999;
+int statusExit = 0;	// 退出标志位
 
 // 共享内存结构体
 typedef struct {
@@ -39,12 +41,14 @@ void process_out(int signo)
 }
  
 /*socket write 函数*/
-void DealProcess(int pid)
+void DealProcess(char *argc)
 {
+	pthread_t tidRecv = (pthread_t)argc;
+//	printf("DealProcess tidRecv = %lu", tidRecv);
 	ST_MESSAGEBOX stMsgBox;
 	int i32TempMessageIndex = 0;
-	
-	printf("Deal Process id = %d\n", pid);
+
+	printf("DealProcess pthread ID = %lu\n", pthread_self());
 
 	stMsgBox.i32MessNum = 0;
 	stMsgBox.i32MsgLen = 0;
@@ -54,7 +58,6 @@ void DealProcess(int pid)
 
 		unsigned int i32TempWritePoint = wWritePoint;
 
-		printf("Deal WritePoint = %d\n", wWritePoint);
 
 		if(wReadPoint % QUEUESIZE != i32TempWritePoint) {
 			// 队列不空
@@ -67,44 +70,68 @@ void DealProcess(int pid)
 
 			int TempNum = -99;
 			sscanf(DataBuff+124, "%dri", &TempNum);
-			printf("TempNum = %d\n", TempNum);
+	//
+			double TempAdd = TempNum + TempNum;
+
+			double TempSub = TempNum - TempNum;
+
+			double Tempmult = TempNum * TempNum;
+
+			double TempDev = TempNum/TempNum;
 
 
 			i32TempMessageIndex++;
-			printf("i32MsgIndex = %d\n", i32TempMessageIndex);
+//			printf("i32MsgIndex = %d\n", i32TempMessageIndex);
 		} else {
 //			printf("queue is NULL\n");
+			
+//			int ret = pthread_kill(tidRecv, SIGQUIT);
+//
+//			printf("ret = %d\n", ret);
+//			if(ret == ESRCH) {
+//				printf("EXIT!\n");
+//				break;
+//			}
 			continue;
 		}
 
+		int ret = pthread_kill(tidRecv, 0);
+
+		printf("ret = %d\n", ret);
+		if(ret == ESRCH) {
+			printf("EXIT!\n");
+			break;
+		}
 
 	}
 
+	printf("DealMessage count = %d\n", i32TempMessageIndex);
 
+//	pthread_exit((void *) 0);
+	return 0;	
 }
  
 /*socket read 函数*/
-void read_func(int pid, int fd)
+void read_func(char *arg)
 {
+	int connectfd = (int)arg;
 	char readbuff[MAXLINE] = {0x0};
 	int n = 0;
 	int i32MessageIndex = 0;		// 记录消息个数
 
-	printf("Line %d\n", __LINE__);
+	//printf("Line %d\n", __LINE__);
+	printf("read Func pthread ID = %lu\n", pthread_self());
 	// 创建临时用于存放数据的结构体
 	ST_MESSAGEBOX stMsgBox;			
-//	memset(&stMsgBox, 0, sizeof(ST_MESSAGEBOX));
 	stMsgBox.i32MessNum = 0;
 	stMsgBox.i32MsgLen = 0;
 	memset(stMsgBox.u8Msg, '\0', sizeof(unsigned char) * 1024);
-
-	printf("read id = %d \n",pid);
  
 	memset(&readbuff,0,sizeof(readbuff));
 	
 	while(1)
 	{
-		n = recv(fd, readbuff, MAXLINE, 0);  /*recv 在这里是阻塞运行*/
+		n = recv(connectfd, readbuff, MAXLINE, 0);  /*recv 在这里是阻塞运行*/
 		if(n > 0) 			/*客户端有数据发送过来*/
 		{
 
@@ -120,8 +147,6 @@ void read_func(int pid, int fd)
 
 			memcpy(&stMsgBoxQue[wWritePoint % QUEUESIZE], &stMsgBox, sizeof(ST_MESSAGEBOX));
 			wWritePoint = (wWritePoint + 1) % QUEUESIZE;
-
-			printf("wWritePoint = %d\n", wWritePoint);
 			
 
 			stMsgBox.i32MessNum = 0;
@@ -138,14 +163,15 @@ void read_func(int pid, int fd)
 	printf("RecvMessage count = %d\n", i32MessageIndex);
 
 	printf("wReadPoint = %d\n", wReadPoint);
-	
-	exit(EXIT_SUCCESS); /*进程退出*/
+
+	// 线程退出
+	pthread_exit((void *)0);
 }
  
  
 int main(void)
 {
-	int listenfd,connetfd;
+	int listenfd,connectfd;
 	int on = 1;
 	int addrlen = 0;
 	pid_t pid, pid_child, pid_Recv, pid_Deal;
@@ -162,8 +188,8 @@ int main(void)
 	addrlen = sizeof(struct sockaddr_in);
 	memset(&server_addr, 0, addrlen);
 	server_addr.sin_family = AF_INET;    /*AF_INET表示 IPv4 Intern 协议*/
-	//server_addr.sin_addr.s_addr = htonl(INADDR_ANY); /*INADDR_ANY 可以监听任意IP */
-	server_addr.sin_addr.s_addr = inet_addr("192.168.2.230");
+	server_addr.sin_addr.s_addr = htonl(INADDR_ANY); /*INADDR_ANY 可以监听任意IP */
+	//server_addr.sin_addr.s_addr = inet_addr("192.168.2.230");
 	server_addr.sin_port = htons(PORT);  /*设置端口*/
  
 	/*对套接字进行设置*/
@@ -187,25 +213,29 @@ int main(void)
 		exit(0);
 	}
 	
-	if( (connetfd = accept(listenfd, (struct sockaddr*)&client_addr, &addrlen)) == -1) {
+	if( (connectfd = accept(listenfd, (struct sockaddr*)&client_addr, &addrlen)) == -1) {
 		printf("accept socket error: %s(errno: %d)",strerror(errno),errno);
 		return -1;
 	}
  
-	signal(SIGCHLD, SIG_IGN); /*忽略SIGCHLD，避免僵尸进程*/
-	pid = fork();
-	if(pid == -1) {
-		printf("fork err \n");
-	} else if(pid == 0) {
+//	signal(SIGCHLD, SIG_IGN); /*忽略SIGCHLD，避免僵尸进程*/
+
+	// 创建新的线程
+	pthread_t tidRecv, tidDeal;
+
+	pthread_create(&tidRecv, NULL, read_func, (void*) connectfd);
+	//pthread_join(tidRecv, NULL);
+//	pthread_detach(tidRecv);
+		
+//	DealProcess(tidRecv);
+//	printf("tidRecv = %d\n", tidRecv);
+
+	pthread_create(&tidDeal, NULL, DealProcess, (void *)tidRecv);
 	
-		pid_child = fork(); 
-		if(pid_child == 0) {  	
-			pid_Deal = getpid(); 	/* 获取子进程ID*/
-			DealProcess(pid_Deal);
-		} else {
-			pid_Recv = getpid(); 	
-			read_func(pid_Recv, connetfd);
-		}
-	}
-	
+	pthread_join(tidRecv, NULL);
+
+
+	pthread_join(tidDeal, NULL);
+
+	return 0;	
 }
